@@ -2,6 +2,13 @@
 %{
 #include "ast.h"
 
+/* handle locations */ 
+int yycolmn = 1;
+#define YY_USER_ACTION yylloc.first_line = yylloc.last_line = yylineno; \
+                        yylloc.first_column = yycolmn; \
+                        yylloc.last_column = yycolmn + yyleng - 1; \
+                        yycolmn += yyleng;
+
 extern YYSTYPE yylval;
 int oldstate;
 %}
@@ -19,6 +26,7 @@ update      { return UPDATE; }
 remove      { return REMOVE; }
 
 in          { return IN; }
+with        { return WITH; }
 into        { return INTO; }
 
 create      { return CREATE; }
@@ -55,12 +63,12 @@ false       { yylval.ival = 0; return BOOLVAL; }
 "&&"            { return AND; }
 "||"            { return OR; }
 
-"<"             { yylval.subtok = 1; return CMP; }
-">"             { yylval.subtok = 2; return CMP; }
-"!="            { yylval.subtok = 3; return CMP; }
-"=="            { yylval.subtok = 4; return CMP; }
-"<="            { yylval.subtok = 5; return CMP; }
-">="            { yylval.subtok = 6; return CMP; }
+"<"             { yylval.subtok = NT_LT; return CMP; }
+">"             { yylval.subtok = NT_GT; return CMP; }
+"!="            { yylval.subtok = NT_NEQ; return CMP; }
+"=="            { yylval.subtok = NT_EQ; return CMP; }
+"<="            { yylval.subtok = NT_LTE; return CMP; }
+">="            { yylval.subtok = NT_GTE; return CMP; }
 
     /* names */
 [a-zA-Z_][a-zA-Z0-9_]*  { yylval.sval = strdup(yytext); return NAME; }
@@ -75,10 +83,11 @@ false       { yylval.ival = 0; return BOOLVAL; }
 
 "/*"                    { oldstate = YY_START; BEGIN(COMMENT); }
 <COMMENT>"*/"           { BEGIN(oldstate); }
-<COMMENT>.|\n           { }
+<COMMENT>.|\n           { yycolmn = 1; }
 
     /* whitespace */
-[ \t\r\n]+              { }
+[ \t\r]+                { }
+\n                      { yycolmn = 1 }
 
     /* everything else */
 .                       { yyerror("mystery character '%c'", *yytext); }
