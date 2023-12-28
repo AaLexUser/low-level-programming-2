@@ -31,8 +31,8 @@ newast(ntype_t nodetype, struct ast* l, struct ast* r)
 {
     struct ast* ast = malloc(sizeof(struct ast));
     if (!ast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     ast->nodetype = nodetype;
     ast->l = l;
@@ -45,8 +45,8 @@ newint(int value)
 {
     struct nint* intast = malloc(sizeof(struct nint));
     if (!intast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     intast->nodetype = NT_INTVAL;
     intast->value = value;
@@ -58,8 +58,8 @@ newfloat(double value)
 {
     struct nfloat* floatast = malloc(sizeof(struct nfloat));
     if (!floatast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     floatast->nodetype = NT_FLOATVAL;
     floatast->value = value;
@@ -71,8 +71,8 @@ newstring(char* value)
 {
     struct nstring* stringast = malloc(sizeof(struct nstring));
     if (!stringast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     stringast->nodetype = NT_STRINGVAL;
     stringast->value = value;
@@ -84,8 +84,8 @@ newbool(int value)
 {
     struct nint* boolast = malloc(sizeof(struct nint));
     if (!boolast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     boolast->nodetype = NT_BOOLVAL;
     boolast->value = value;
@@ -98,8 +98,8 @@ newfor(char* var, char* tabname, struct ast* nonterm_list_head, struct ast* term
 {
     struct for_ast* forast = malloc(sizeof(struct for_ast));
     if (!forast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     forast->nodetype = NT_FOR;
     forast->var = var;
@@ -115,8 +115,8 @@ newlist(struct ast* value, struct ast* next)
 {
     struct list_ast* listast = malloc(sizeof(struct list_ast));
     if (!listast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     listast->nodetype = NT_LIST;
     listast->value = value;
@@ -130,8 +130,8 @@ newfilter(struct ast* conditions_tree_root)
 {
     struct filter_ast* filterast = malloc(sizeof(struct filter_ast));
     if (!filterast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     filterast->nodetype = NT_FILTER;
     filterast->conditions_tree_root = conditions_tree_root;
@@ -144,8 +144,8 @@ newfilter_condition(struct ast* l, struct ast* r, int logic)
 {
     struct filter_condition_ast* filter_cond = malloc(sizeof(struct filter_condition_ast));
     if (!filter_cond) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     filter_cond->nodetype = NT_FILTER_CONDITION;
     filter_cond->l = l;
@@ -160,8 +160,8 @@ newfilter_expr(struct ast* attr_name, struct ast* constant, int cmp)
 {
     struct filter_expr_ast* filter_expr = malloc(sizeof(struct filter_expr_ast));
     if (!filter_expr) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     filter_expr->nodetype = NT_FILTER_EXPR;
     filter_expr->attr_name = attr_name;
@@ -176,8 +176,8 @@ newattr_name(char* variable, char* attr_name)
 {
     struct attr_name_ast* attrname = malloc(sizeof(struct attr_name_ast));
     if (!attrname) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     attrname->nodetype = NT_ATTR_NAME;
     attrname->variable = variable;
@@ -191,8 +191,8 @@ newreturn(struct ast* value)
 {
     struct return_ast* returnast = malloc(sizeof(struct return_ast));
     if (!returnast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     returnast->nodetype = NT_RETURN;
     returnast->value = value;
@@ -205,8 +205,8 @@ newmerge(char* var1, char* var2)
 {
     struct merge_ast* mergeast = malloc(sizeof(struct merge_ast));
     if (!mergeast) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     mergeast->nodetype = NT_MERGE;
     mergeast->var1 = var1;
@@ -222,8 +222,8 @@ newpair(char* key, struct ast* value)
 {
     struct pair_ast* pair = malloc(sizeof(struct pair_ast));
     if (!pair) {
-        yyerror("out of space");
-        exit(0);
+       fprintf(stderr, "out of space");
+        return NULL;
     }
     pair->nodetype = NT_PAIR;
     pair->key = key;
@@ -237,8 +237,8 @@ newinsert(char* tabname, struct ast* list)
 {
     struct insert_ast* insert = malloc(sizeof(struct insert_ast));
     if (!insert) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     insert->nodetype = NT_INSERT;
     insert->tabname = tabname;
@@ -252,8 +252,8 @@ newupdate(char* tabname, struct ast* attr, struct ast* list)
 {
     struct update_ast* update = malloc(sizeof(struct update_ast));
     if (!update) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     update->nodetype = NT_UPDATE;
     update->tabname = tabname;
@@ -268,8 +268,8 @@ newremove(char* tabname, struct ast* attr)
 {
     struct remove_ast* remove = malloc(sizeof(struct remove_ast));
     if (!remove) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     remove->nodetype = NT_REMOVE;
     remove->tabname = tabname;
@@ -283,8 +283,8 @@ newcreate_pair(char* name, int type)
 {
     struct create_pair_ast* create_pair = malloc(sizeof(struct create_pair_ast));
     if (!create_pair) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     create_pair->nodetype = NT_CREATE_PAIR;
     create_pair->name = name;
@@ -298,8 +298,8 @@ newcreate(char* name, struct ast* difinitions)
 {
     struct create_ast* create = malloc(sizeof(struct create_ast));
     if (!create) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     create->nodetype = NT_CREATE;
     create->name = name;
@@ -313,8 +313,8 @@ newdrop(char* name)
 {
     struct drop_ast* drop = malloc(sizeof(struct drop_ast));
     if (!drop) {
-        yyerror("out of space");
-        exit(0);
+        fprintf(stderr, "out of space");
+        return NULL;
     }
     drop->nodetype = NT_DROP;
     drop->name = name;
@@ -504,8 +504,8 @@ void print_ast(FILE* stream, struct ast* ast, int level)
         }
 
         default: {
-            yyerror("unknown nodetype");
-            exit(0);
+            fprintf(stream, "unknown nodetype");
+            return;
         }
     }
 }
@@ -642,16 +642,28 @@ void free_ast(struct ast* ast){
         }
 
         default: {
-            yyerror("unknown nodetype");
-            exit(0);
+            fprintf(stderr, "unknown nodetype");
+            return;
         }
     }
 
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    printf("> ");
-    yyparse();
+    extern FILE* yyin;
+
+    if (argc > 1) {
+        yyin = fopen(argv[1], "r");
+        if (!yyin) {
+            fprintf(stderr, "can't open file %s\n", argv[1]);
+            return 1;
+        }
+    }
+    else {
+        yyin = stdin;
+        printf("> ");
+    }
+    parse_ast();
     return 0;
 }

@@ -3,8 +3,8 @@
 
 /* interface to the lexer */
 extern int yylineno; /* from lexer */
-extern int yyparse(void);
-extern void yyerror(const char *s, ...);
+extern struct ast * parse_ast(void);
+extern void yyerror(struct ast** ast, const char *s, ...);
 #include <stdio.h>
 
 

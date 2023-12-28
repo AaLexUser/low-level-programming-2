@@ -57,7 +57,7 @@ false       { yylval.ival = 0; return BOOLVAL; }
 \"(\\.|\"\"|[^"\n])*\"          { yylval.sval = strdup(yytext); return STRINGVAL; }
 
 '(\\.|[^'\n])*$                 |
-\"(\\.|[^"\n])*$                { yyerror("unterminated string %s", yytext); }
+\"(\\.|[^"\n])*$                { yyerror(NULL, "unterminated string %s", yytext); }
 
     /* operators */
 [(){}:,;\.]        { return yytext[0]; }
@@ -79,7 +79,7 @@ false       { yylval.ival = 0; return BOOLVAL; }
                             yylval.sval[yyleng-2] = 0;
                             return VARNAME; 
                         }
-`[^`\n]*$               { yyerror("unterminated quoted name %s", yytext); }
+`[^`\n]*$               { yyerror(NULL, "unterminated quoted name %s", yytext); }
 
     /* comments */
 
@@ -92,6 +92,6 @@ false       { yylval.ival = 0; return BOOLVAL; }
 \n                      { yycolmn = 1; }
 
     /* everything else */
-.                       { yyerror("mystery character '%c'", *yytext); }
+.                       { yyerror(NULL, "mystery character '%c'", *yytext); }
 
 %%

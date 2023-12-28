@@ -49,6 +49,7 @@ extern int yylex();
 %type <ast> create_stmt create_pairs create_pair
 
 %locations
+%parse-param { struct ast **root }
 %start query
 %define parse.error verbose
 
@@ -64,92 +65,93 @@ non_terminal: filter_stmt
     |  for_stmt
     ;
 
-query: terminal                         { $$ = $1; print_ast(stdout, $$, 0); free_ast($$); }
-    | for_stmt                          { $$ = $1; print_ast(stdout, $$, 0); free_ast($$);}
+query: YYEOF                            { $$ = NULL; }
+    | terminal                          { $$ = $1; print_ast(stdout, *root, 0); free_ast($$); }
+    | for_stmt                          { $$ = $1; print_ast(stdout, *root, 0); free_ast($$);}
 
-for_stmt: FOR VARNAME IN VARNAME terminal YYEOF                     { $$ = newfor($2, $4, NULL, $5); }
-    | FOR VARNAME IN VARNAME non_terminal_list terminal YYEOF       { $$ = newfor($2, $4, $5, $6); }
-    | FOR VARNAME IN VARNAME non_terminal_list YYEOF                { $$ = newfor($2, $4, $5, NULL); }
+for_stmt: FOR VARNAME IN VARNAME terminal YYEOF                     { $$ = newfor($2, $4, NULL, $5); *root= $$;}
+    | FOR VARNAME IN VARNAME non_terminal_list terminal YYEOF       { $$ = newfor($2, $4, $5, $6); *root= $$;}
+    | FOR VARNAME IN VARNAME non_terminal_list YYEOF                { $$ = newfor($2, $4, $5, NULL); *root= $$;}
     ;
 
-non_terminal_list: non_terminal                             { $$ = newlist($1, NULL);}  
-    | non_terminal_list non_terminal                        { $$ = newlist($2, $1);}
+non_terminal_list: non_terminal                             { $$ = newlist($1, NULL); *root= $$;}  
+    | non_terminal_list non_terminal                        { $$ = newlist($2, $1); *root= $$;}
     ;
 
 /*---------------filter-----------------*/
-filter_stmt: FILTER conditions              { $$ = newfilter($2); }
+filter_stmt: FILTER conditions              { $$ = newfilter($2); *root= $$;}
     ;
-conditions: '(' filter_expr ')'             { $$ = newfilter_condition($2, NULL, -1);}
-    | filter_expr                           { $$ = newfilter_condition($1, NULL, -1);}
-    | filter_expr AND conditions            { $$ = newfilter_condition($1, $3, NT_AND);}
-    | filter_expr OR conditions             { $$ = newfilter_condition($1, $3, NT_OR);}
+conditions: '(' filter_expr ')'             { $$ = newfilter_condition($2, NULL, -1); *root= $$;}
+    | filter_expr                           { $$ = newfilter_condition($1, NULL, -1); *root= $$;}
+    | filter_expr AND conditions            { $$ = newfilter_condition($1, $3, NT_AND); *root= $$;}
+    | filter_expr OR conditions             { $$ = newfilter_condition($1, $3, NT_OR); *root= $$;}
     ;
-filter_expr: filter_attr_name CMP constant       { $$ = newfilter_expr($1, $3, $2);}
-    | constant IN filter_attr_name              { $$ = newfilter_expr($3, $1, $2);}
+filter_expr: filter_attr_name CMP constant       { $$ = newfilter_expr($1, $3, $2); *root= $$;}
+    | constant IN filter_attr_name              { $$ = newfilter_expr($3, $1, $2); *root= $$;}
     ;
 
-filter_attr_name: VARNAME '.' VARNAME         { $$ = newattr_name($1, $3);}
+filter_attr_name: VARNAME '.' VARNAME         { $$ = newattr_name($1, $3); *root= $$;}
 
 /*---------------return-----------------*/
-return_stmt: RETURN attr_name             { $$ = newreturn($2); }
-    |    RETURN return_document           { $$ = newreturn($2); }
-    |    RETURN MERGE '(' merge ')'       { $$ = newreturn($4); }
+return_stmt: RETURN attr_name             { $$ = newreturn($2); *root= $$;}
+    |    RETURN return_document           { $$ = newreturn($2); *root= $$;}
+    |    RETURN MERGE '(' merge ')'       { $$ = newreturn($4); *root= $$;}
 
-merge: VARNAME ',' VARNAME                { $$ = newmerge($1, $3); }
+merge: VARNAME ',' VARNAME                { $$ = newmerge($1, $3); *root= $$;}
     ;
-attr_name: VARNAME '.' VARNAME         { $$ = newattr_name($1, $3);}
-    | VARNAME                          { $$ = newattr_name($1, NULL);}
+attr_name: VARNAME '.' VARNAME         { $$ = newattr_name($1, $3);*root= $$;}
+    | VARNAME                          { $$ = newattr_name($1, NULL); *root= $$;}
     ;
 
 return_document: '{' return_pairs '}'               { $$ = $2; }
     ;
 return_pairs: return_pair
-    | return_pairs ',' return_pair                  { $$ = newlist($3, $1);}
+    | return_pairs ',' return_pair                  { $$ = newlist($3, $1);*root= $$;}
     ;
-return_pair: VARNAME ':' attr_name                  { $$ = newpair($1, $3); }
+return_pair: VARNAME ':' attr_name                  { $$ = newpair($1, $3); *root= $$;}
 
 
-constant: INTVAL                         { $$ = newint($1); }
-        | FLOATVAL                       { $$ = newfloat($1); }
-        | BOOLVAL                        { $$ = newbool($1); }
-        | STRINGVAL                      { $$ = newstring($1); }
+constant: INTVAL                         { $$ = newint($1); *root= $$;}
+        | FLOATVAL                       { $$ = newfloat($1); *root= $$;}
+        | BOOLVAL                        { $$ = newbool($1); *root= $$;}
+        | STRINGVAL                      { $$ = newstring($1); *root= $$;}
         ;
 
 /*---------------insert-----------------*/
-insert_stmt: INSERT document INTO VARNAME       { $$ = newinsert($4, $2); }
+insert_stmt: INSERT document INTO VARNAME       { $$ = newinsert($4, $2); *root= $$;}
     ;
 
-document : '{' pairs '}'                        { $$ = $2; }
+document : '{' pairs '}'                        { $$ = $2;}
     ;
-pairs: pair                                     { $$ = newlist($1, NULL);}
-    | pairs ',' pair                            { $$ = newlist($3, $1);}
+pairs: pair                                     { $$ = newlist($1, NULL);*root= $$;}
+    | pairs ',' pair                            { $$ = newlist($3, $1);*root= $$;}
     ;
-pair: VARNAME ':' constant                      { $$ = newpair($1, $3); }
+pair: VARNAME ':' constant                      { $$ = newpair($1, $3); *root= $$;}
 
 /*---------------update-----------------*/
-update_stmt: UPDATE attr_name WITH document IN VARNAME       { $$ = newupdate($6, $2, $4); }
+update_stmt: UPDATE attr_name WITH document IN VARNAME       { $$ = newupdate($6, $2, $4); *root= $$;}
     ;
 
 /*---------------remove-----------------*/
-remove_stmt: REMOVE attr_name IN VARNAME       { $$ = newremove($4, $2); }
+remove_stmt: REMOVE attr_name IN VARNAME       { $$ = newremove($4, $2); *root= $$;}
     ;
 /*---------------create-----------------*/
-create_stmt: CREATE VARNAME WITH '{' create_pairs '}'       { $$ = newcreate($2, $5); }
+create_stmt: CREATE VARNAME WITH '{' create_pairs '}'       { $$ = newcreate($2, $5); *root= $$;}
     ;
-create_pairs: create_pair                           { $$ = newlist($1, NULL);}
-    | create_pairs ',' create_pair                  { $$ = newlist($3, $1);}
+create_pairs: create_pair                           { $$ = newlist($1, NULL); *root= $$;}
+    | create_pairs ',' create_pair                  { $$ = newlist($3, $1); *root= $$;}
     ;
-create_pair: VARNAME ':' TYPE                      { $$ = newcreate_pair($1, $3); }
+create_pair: VARNAME ':' TYPE                      { $$ = newcreate_pair($1, $3); *root= $$;}
     ;
 
 /*---------------drop-----------------*/
-drop_stmt: DROP VARNAME       { $$ = newdrop($2); }
+drop_stmt: DROP VARNAME       { $$ = newdrop($2); *root= $$;}
     ;
 
 %%
 
 void
-yyerror(const char *s, ...)
+yyerror(struct ast** ast, const char *s, ...)
 {
     va_list ap;
     va_start(ap, s);
@@ -159,4 +161,12 @@ yyerror(const char *s, ...)
         yylloc.first_line, yylloc.first_column, yylloc.last_line, yylloc.last_column);
     vfprintf(stderr, s, ap);
     fprintf(stderr, "\n");
+    free_ast(*ast);
 }
+
+struct ast * parse_ast(){
+    struct ast *root = NULL;
+    yyparse(&root);
+    return root;
+}
+
