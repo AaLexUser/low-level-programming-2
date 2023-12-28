@@ -25,8 +25,9 @@ filter      { return FILTER; }
 insert      { return INSERT; }
 update      { return UPDATE; }
 remove      { return REMOVE; }
+merge       { return MERGE; }
 
-in          { return IN; }
+in          { yylval.subtok = NT_IN; return IN; }
 with        { return WITH; }
 into        { return INTO; }
 

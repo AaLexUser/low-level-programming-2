@@ -15,6 +15,7 @@ static char* str_cond[] ={
     [NT_GTE] = ">=",
     [NT_AND] = "AND",
     [NT_OR] = "OR",
+    [NT_IN] = "IN",
 };
 
 static char* str_type[] ={
@@ -196,6 +197,21 @@ newreturn(struct ast* value)
     returnast->nodetype = NT_RETURN;
     returnast->value = value;
     return (struct ast*)returnast;
+}
+
+/*---------------------------merge ast -----------------------------*/
+struct ast*
+newmerge(char* var1, char* var2)
+{
+    struct merge_ast* mergeast = malloc(sizeof(struct merge_ast));
+    if (!mergeast) {
+        yyerror("out of space");
+        exit(0);
+    }
+    mergeast->nodetype = NT_MERGE;
+    mergeast->var1 = var1;
+    mergeast->var2 = var2;
+    return (struct ast*)mergeast;
 }
 
 
@@ -408,6 +424,14 @@ void print_ast(FILE* stream, struct ast* ast, int level)
             print_node(stream, level, "}\n");
             break;
         }
+        case NT_MERGE: {
+            struct merge_ast* mergeast = (struct merge_ast*)ast;
+            print_node(stream, level, "merge: {\n");
+            print_node(stream, level+1, "variable: %s\n", mergeast->var1);
+            print_node(stream, level+1, "variable: %s\n", mergeast->var2);
+            print_node(stream, level, "}\n");
+            break;
+        }
         case NT_ATTR_NAME: {
             struct attr_name_ast* attrnameast = (struct attr_name_ast*)ast;
             print_node(stream, level, "attr_name: {\n");
@@ -419,7 +443,7 @@ void print_ast(FILE* stream, struct ast* ast, int level)
         }
         case NT_FILTER_CONDITION: {
             struct filter_condition_ast* cond_ast = (struct filter_condition_ast*)ast;
-            print_node(stream, level, "filter_condition: {\n");
+            print_node(stream, level, "conditions: {\n");
             if(cond_ast->logic != -1)
                 print_node(stream, level+1, "logic: %s\n", str_cond[cond_ast->logic]);
             print_ast(stream, cond_ast->l, level+1);
@@ -448,8 +472,13 @@ void print_ast(FILE* stream, struct ast* ast, int level)
             print_node(stream, level, "for: {\n");
             print_node(stream, level+1, "var: %s\n", forast->var);
             print_node(stream, level+1, "tabname: %s\n", forast->tabname);
-            print_ast(stream, forast->nonterm_list_head, level+1);
-            print_ast(stream, forast->terminal, level+1);
+            if(forast->nonterm_list_head != NULL){
+                print_node(stream, level+1, "body: [\n");
+                print_ast(stream, forast->nonterm_list_head, level+1);
+                print_node(stream, level+1, "]\n");
+            }
+            if(forast->terminal != NULL)
+                print_ast(stream, forast->terminal, level+1);
             print_node(stream, level, "}\n");
             break;
         }
@@ -544,6 +573,13 @@ void free_ast(struct ast* ast){
             struct create_pair_ast* create_pairast = (struct create_pair_ast*)ast;
             free(create_pairast->name);
             free(create_pairast);
+            break;
+        }
+        case NT_MERGE: {
+            struct merge_ast* mergeast = (struct merge_ast*)ast;
+            free(mergeast->var1);
+            free(mergeast->var2);
+            free(mergeast);
             break;
         }
         case NT_ATTR_NAME: {

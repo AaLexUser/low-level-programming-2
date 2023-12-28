@@ -15,7 +15,7 @@ ${PROGRAM}: ast.h parser.tab.c lexer.c
 	${CC} -o ${PROGRAM} ast.c parser.tab.c lexer.c
 
 parser.tab.c parser.tab.h: parser.y
-	${YACC} -d parser.y
+	${YACC} -d -Wcounterexamples parser.y
 
 lexer.c: lexer.l
 	${LEX} -o lexer.c lexer.l
