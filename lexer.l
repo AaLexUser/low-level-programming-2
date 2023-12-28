@@ -33,10 +33,10 @@ into        { return INTO; }
 create      { return CREATE; }
 drop        { return DROP; }
 
-int         { return INTEGER; }
-float       { return FLOAT; }
-string      { return STRING; }
-bool        { return BOOLEAN; }
+int         { yylval.subtok = NT_INTEGER; return TYPE; }
+float       { yylval.subtok = NT_FLOAT; return TYPE; }
+string      { yylval.subtok = NT_STRING; return TYPE; }
+bool        { yylval.subtok = NT_BOOLEAN; return TYPE; }
 
     /* numbers */
 -[0-9]+      { yylval.ival = atoi(yytext); return INTVAL; }

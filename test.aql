@@ -1,1 +1,3 @@
 FOR u IN users RETURN u
+
+CREATE users WITH { name: string, lastname: string, student: bool, money: int, score: float}

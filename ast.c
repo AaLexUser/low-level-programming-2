@@ -18,10 +18,10 @@ static char* str_cond[] ={
 };
 
 static char* str_type[] ={
-    [NT_INTVAL] = "int",
-    [NT_FLOATVAL] = "float",
-    [NT_STRINGVAL] = "string",
-    [NT_BOOLVAL] = "bool",
+    [NT_INTEGER] = "int",
+    [NT_FLOAT] = "float",
+    [NT_STRING] = "string",
+    [NT_BOOLEAN] = "bool",
 };
 
 
@@ -53,7 +53,7 @@ newint(int value)
 }
 
 struct ast*
-newfloat(float value)
+newfloat(double value)
 {
     struct nfloat* floatast = malloc(sizeof(struct nfloat));
     if (!floatast) {
@@ -246,6 +246,65 @@ newupdate(char* tabname, struct ast* attr, struct ast* list)
     return (struct ast*)update;
 }
 
+/*---------------------------remove ast -----------------------------*/
+struct ast*
+newremove(char* tabname, struct ast* attr)
+{
+    struct remove_ast* remove = malloc(sizeof(struct remove_ast));
+    if (!remove) {
+        yyerror("out of space");
+        exit(0);
+    }
+    remove->nodetype = NT_REMOVE;
+    remove->tabname = tabname;
+    remove->attr = attr;
+    return (struct ast*)remove;
+}
+
+/*---------------------------create pair ast -----------------------------*/
+struct ast*
+newcreate_pair(char* name, int type)
+{
+    struct create_pair_ast* create_pair = malloc(sizeof(struct create_pair_ast));
+    if (!create_pair) {
+        yyerror("out of space");
+        exit(0);
+    }
+    create_pair->nodetype = NT_CREATE_PAIR;
+    create_pair->name = name;
+    create_pair->type = type;
+    return (struct ast*)create_pair;
+}
+
+/*---------------------------create ast -----------------------------*/
+struct ast*
+newcreate(char* name, struct ast* difinitions)
+{
+    struct create_ast* create = malloc(sizeof(struct create_ast));
+    if (!create) {
+        yyerror("out of space");
+        exit(0);
+    }
+    create->nodetype = NT_CREATE;
+    create->name = name;
+    create->difinitions = difinitions;
+    return (struct ast*)create;
+}
+
+/*---------------------------drop ast -----------------------------*/
+struct ast*
+newdrop(char* name)
+{
+    struct drop_ast* drop = malloc(sizeof(struct drop_ast));
+    if (!drop) {
+        yyerror("out of space");
+        exit(0);
+    }
+    drop->nodetype = NT_DROP;
+    drop->name = name;
+    return (struct ast*)drop;
+}
+
 
 static void print_indent(FILE* stream, int level)
 {
@@ -285,7 +344,9 @@ void print_ast(FILE* stream, struct ast* ast, int level)
             struct insert_ast* insertast = (struct insert_ast*)ast;
             print_node(stream, level, "insert: {\n");
             print_node(stream, level+1, "tabname: %s\n", insertast->tabname);
+            print_node(stream, level+1, "data: [\n");
             print_ast(stream, insertast->list, level+1);
+            print_node(stream, level+1, "]\n");
             print_node(stream, level, "}\n");
             break;
         }
@@ -298,12 +359,35 @@ void print_ast(FILE* stream, struct ast* ast, int level)
             print_node(stream, level, "}\n");
             break;
         }
+        case NT_REMOVE: {
+            struct remove_ast* removeast = (struct remove_ast*)ast;
+            print_node(stream, level, "remove: {\n");
+            print_node(stream, level+1, "tabname: %s\n", removeast->tabname);
+            print_ast(stream, removeast->attr, level+1);
+            print_node(stream, level, "}\n");
+            break;
+        }
+        case NT_CREATE: {
+            struct create_ast* createast = (struct create_ast*)ast;
+            print_node(stream, level, "create: {\n");
+            print_node(stream, level+1, "tabname: %s\n", createast->name);
+            print_node(stream, level+1, "data: [\n");
+            print_ast(stream, createast->difinitions, level+1);
+            print_node(stream, level+1, "]\n");
+            print_node(stream, level, "}\n");
+            break;
+        }
+        case NT_DROP: {
+            struct drop_ast* dropast = (struct drop_ast*)ast;
+            print_node(stream, level, "drop: {\n");
+            print_node(stream, level+1, "tabname: %s\n", dropast->name);
+            print_node(stream, level, "}\n");
+            break;
+        }
         case NT_LIST: {
             struct list_ast* listast = (struct list_ast*)ast;
-            print_node(stream, level, "list: [\n");
+            print_ast(stream, listast->next, level);
             print_ast(stream, listast->value, level+1);
-            print_ast(stream, listast->next, level+1);
-            print_node(stream, level, "]\n");
             break;
         }
         case NT_PAIR : {
@@ -313,6 +397,14 @@ void print_ast(FILE* stream, struct ast* ast, int level)
             print_node(stream, level+1, "value: {\n");
             print_ast(stream, pairast->value, level+2);
             print_node(stream, level+1, "}\n");
+            print_node(stream, level, "}\n");
+            break;
+        }
+        case NT_CREATE_PAIR: {
+            struct create_pair_ast* create_pairast = (struct create_pair_ast*)ast;
+            print_node(stream, level, "definition: {\n");
+            print_node(stream, level+1, "name: %s\n", create_pairast->name);
+            print_node(stream, level+1, "type: %s\n", str_type[create_pairast->type]);
             print_node(stream, level, "}\n");
             break;
         }
@@ -368,7 +460,7 @@ void print_ast(FILE* stream, struct ast* ast, int level)
         }
         case NT_FLOATVAL: {
             struct nfloat* floatast = (struct nfloat*)ast;
-            print_node(stream, level, "float: %f\n, floatast->value");
+            print_node(stream, level, "float: %4.4f\n", floatast->value);
             break;
         }
         case NT_STRINGVAL: {
@@ -378,7 +470,7 @@ void print_ast(FILE* stream, struct ast* ast, int level)
         }
         case NT_BOOLVAL: {
             struct nint* boolast = (struct nint*)ast;
-            print_node(stream, level, "bool: %d\n", boolast->value);
+            print_node(stream, level, "bool: %s\n", boolast->value ? "true" : "false");
             break;
         }
 
@@ -415,6 +507,26 @@ void free_ast(struct ast* ast){
             free(updateast);
             break;
         }
+        case NT_REMOVE: {
+            struct remove_ast* removeast = (struct remove_ast*)ast;
+            free(removeast->tabname);
+            free_ast(removeast->attr);
+            free(removeast);
+            break;
+        }
+        case NT_CREATE: {
+            struct create_ast* createast = (struct create_ast*)ast;
+            free(createast->name);
+            free_ast(createast->difinitions);
+            free(createast);
+            break;
+        }
+        case NT_DROP: {
+            struct drop_ast* dropast = (struct drop_ast*)ast;
+            free(dropast->name);
+            free(dropast);
+            break;
+        }
         case NT_LIST: {
             struct list_ast* listast = (struct list_ast*)ast;
             free_ast(listast->value);
@@ -426,6 +538,12 @@ void free_ast(struct ast* ast){
             struct pair_ast* pairast = (struct pair_ast*)ast;
             free_ast(pairast->value);
             free(pairast);
+            break;
+        }
+        case NT_CREATE_PAIR: {
+            struct create_pair_ast* create_pairast = (struct create_pair_ast*)ast;
+            free(create_pairast->name);
+            free(create_pairast);
             break;
         }
         case NT_ATTR_NAME: {

@@ -18,20 +18,21 @@ extern int yylex();
 }
     /* names and literal values */
 %token <sval> VARNAME STRINGVAL
-%token <ival> INTVAL FLOATVAL BOOLVAL
+%token <ival> INTVAL BOOLVAL
+%token <fval> FLOATVAL
 
     /* operators and precedence levels */
 %left ','
 %left OR
 %left AND
-%token <subtok> IN CMP
+%left <subtok> IN CMP
 
 
     /* keywords */
 %token FOR RETURN FILTER INSERT UPDATE REMOVE WITH INTO CREATE DROP
 
     /* types */
-%token INTEGER FLOAT BOOLEAN STRING
+%token<subtok> TYPE
 
     /* punctuation */
 
@@ -44,7 +45,9 @@ extern int yylex();
 %type <ast> return_stmt attr_name return_document return_pairs return_pair
 %type <ast> terminal query non_terminal
 %type <ast> insert_stmt document pairs pair
-%type <ast> update_stmt
+%type <ast> update_stmt remove_stmt drop_stmt
+%type <ast> create_stmt create_pairs create_pair
+
 %locations
 %start query
 %define parse.error verbose
@@ -53,6 +56,9 @@ extern int yylex();
 terminal: return_stmt
     | insert_stmt
     | update_stmt
+    | remove_stmt
+    | create_stmt
+    | drop_stmt
     ;
 non_terminal: filter_stmt
     |  for_stmt
@@ -84,16 +90,16 @@ filter_attr_name: VARNAME '.' VARNAME         { $$ = newattr_name($1, $3);}
 
 /*---------------return-----------------*/
 return_stmt: RETURN attr_name             { $$ = newreturn($2); }
-    |    RETURN return_document             { $$ = newreturn($2); }
+    |    RETURN return_document           { $$ = newreturn($2); }
     ;
 attr_name: VARNAME '.' VARNAME         { $$ = newattr_name($1, $3);}
-    | VARNAME                            { $$ = newattr_name($1, NULL);}
+    | VARNAME                          { $$ = newattr_name($1, NULL);}
     ;
 
-return_document: '{' return_pairs '}'                  { $$ = $2; }
+return_document: '{' return_pairs '}'               { $$ = $2; }
     ;
 return_pairs: return_pair
-    | return_pairs ',' return_pair                     { $$ = newlist($3, $1);}
+    | return_pairs ',' return_pair                  { $$ = newlist($3, $1);}
     ;
 return_pair: VARNAME ':' attr_name                  { $$ = newpair($1, $3); }
 
@@ -105,18 +111,34 @@ constant: INTVAL                         { $$ = newint($1); }
         ;
 
 /*---------------insert-----------------*/
-insert_stmt: INSERT document INTO VARNAME        { $$ = newinsert($4, $2); }
+insert_stmt: INSERT document INTO VARNAME       { $$ = newinsert($4, $2); }
     ;
 
-document : '{' pairs '}'                  { $$ = $2; }
+document : '{' pairs '}'                        { $$ = $2; }
     ;
-pairs: pair
-    | pairs ',' pair                       { $$ = newlist($3, $1);}
+pairs: pair                                     { $$ = newlist($1, NULL);}
+    | pairs ',' pair                            { $$ = newlist($3, $1);}
     ;
-pair: VARNAME ':' constant                       { $$ = newpair($1, $3); }
+pair: VARNAME ':' constant                      { $$ = newpair($1, $3); }
 
 /*---------------update-----------------*/
 update_stmt: UPDATE attr_name WITH document IN VARNAME       { $$ = newupdate($6, $2, $4); }
+    ;
+
+/*---------------remove-----------------*/
+remove_stmt: REMOVE attr_name IN VARNAME       { $$ = newremove($4, $2); }
+    ;
+/*---------------create-----------------*/
+create_stmt: CREATE VARNAME WITH '{' create_pairs '}'       { $$ = newcreate($2, $5); }
+    ;
+create_pairs: create_pair                           { $$ = newlist($1, NULL);}
+    | create_pairs ',' create_pair                  { $$ = newlist($3, $1);}
+    ;
+create_pair: VARNAME ':' TYPE                      { $$ = newcreate_pair($1, $3); }
+    ;
+
+/*---------------drop-----------------*/
+drop_stmt: DROP VARNAME       { $$ = newdrop($2); }
     ;
 
 %%

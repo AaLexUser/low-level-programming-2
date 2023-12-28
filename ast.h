@@ -13,7 +13,7 @@ typedef enum ntype {
     NT_FOR, NT_RETURN, NT_FILTER, NT_INSERT,
     NT_UPDATE, NT_REMOVE, NT_CREATE, NT_DROP,
     NT_PAIR, NT_FILTER_CONDITION, NT_FILTER_EXPR,
-    NT_ATTR_NAME, NT_LIST,
+    NT_ATTR_NAME, NT_LIST, NT_CREATE_PAIR,
 
     /* variable types */
     NT_INTEGER, NT_FLOAT, NT_STRING, NT_BOOLEAN,
@@ -39,7 +39,7 @@ struct nint {
 
 struct nfloat {
     ntype_t nodetype;
-    float value;
+    double value;
 };
 
 struct nstring {
@@ -121,6 +121,29 @@ struct update_ast {
     struct ast* list;
 };
 
+struct remove_ast {
+    ntype_t nodetype;
+    char* tabname;
+    struct ast* attr;
+};
+
+struct create_pair_ast {
+    ntype_t nodetype;
+    char* name;
+    ntype_t type;
+};
+
+struct create_ast {
+    ntype_t nodetype;
+    char* name;
+    struct ast* difinitions;
+};
+
+struct drop_ast {
+    ntype_t nodetype;
+    char* name;
+};
+
 
 
 struct ast*
@@ -130,7 +153,7 @@ struct ast*
 newint(int value);
 
 struct ast*
-newfloat(float value);
+newfloat(double value);
 
 struct ast*
 newstring(char* value);
@@ -167,6 +190,19 @@ newinsert(char* tabname, struct ast* list);
 
 struct ast*
 newupdate(char* tabname, struct ast* attr, struct ast* list);
+
+struct ast*
+newremove(char* tabname, struct ast* attr);
+
+struct ast*
+newcreate_pair(char* name, int type);
+
+struct ast*
+newcreate(char* name, struct ast* difinitions);
+
+struct ast*
+newdrop(char* name);
+
 
 
 void print_ast(FILE* stream, struct ast* ast, int level);
