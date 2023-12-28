@@ -4,13 +4,16 @@
 /* interface to the lexer */
 extern int yylineno; /* from lexer */
 extern int yyparse(void);
+extern void yyerror(const char *s, ...);
+#include <stdio.h>
 
 
 typedef enum ntype {
     /* keywords */
     NT_FOR, NT_RETURN, NT_FILTER, NT_INSERT,
     NT_UPDATE, NT_REMOVE, NT_CREATE, NT_DROP,
-    NT_PAIR,
+    NT_PAIR, NT_FILTER_CONDITION, NT_FILTER_EXPR,
+    NT_ATTR_NAME, NT_LIST,
 
     /* variable types */
     NT_INTEGER, NT_FLOAT, NT_STRING, NT_BOOLEAN,
@@ -48,26 +51,50 @@ struct for_ast {
     ntype_t nodetype;
     char* var; 
     char* tabname;
-    struct ast* action;
+    struct ast* nonterm_list_head;
+    struct ast* terminal;
 };
 
-struct insert_ast {
+struct list_ast {
     ntype_t nodetype;
-    char* tabname;
-    struct ast* values;
+    struct ast* value;
+    struct ast* next;
 };
 
-struct remove_ast {
+struct filter_ast {
     ntype_t nodetype;
-    char* var;
-    char* tabname;
+    struct ast* conditions_tree_root;
+};
+
+struct filter_condition_ast {
+    ntype_t nodetype;
+    struct ast* l;
+    struct ast* r;
+    int logic;
+};
+
+struct filter_expr_ast {
+    ntype_t nodetype;
+    struct ast* attr_name;
+    struct ast* constant;
+    int cmp;
+};
+
+struct attr_name_ast {
+    ntype_t nodetype;
+    char* variable;
+    char* attr_name;
+};
+
+struct return_ast {
+    ntype_t nodetype;
+    struct ast* value;
 };
 
 struct pair_ast {
     ntype_t nodetype;
     char* key;
     struct ast* value;
-    struct pair_ast* next;
 };
 
 struct condition_ast {
@@ -79,6 +106,19 @@ struct condition_ast {
 struct variable_ast {
     ntype_t nodetype;
     char* name;
+};
+
+struct insert_ast {
+    ntype_t nodetype;
+    char* tabname;
+    struct ast* list;
+};
+
+struct update_ast {
+    ntype_t nodetype;
+    char* tabname;
+    struct ast* attr;
+    struct ast* list;
 };
 
 
@@ -99,7 +139,39 @@ struct ast*
 newbool(int value);
 
 struct ast*
-newfor(char* var, char* tabname, struct ast* action);
+newfor(char* var, char* tabname, struct ast* nonterm_list_head, struct ast* terminal);
+
+struct ast*
+newlist(struct ast* value, struct ast* next);
+
+struct ast*
+newfilter(struct ast* conditions_tree_root);
+
+struct ast*
+newfilter_condition(struct ast* l, struct ast* r, int logic);
+
+struct ast*
+newfilter_expr(struct ast* attr_name, struct ast* constant, int cmp);
+
+struct ast*
+newattr_name(char* variable, char* attr_name);
+
+struct ast*
+newpair(char* key, struct ast* value);
+
+struct ast*
+newreturn(struct ast* value);
+
+struct ast*
+newinsert(char* tabname, struct ast* list);
+
+struct ast*
+newupdate(char* tabname, struct ast* attr, struct ast* list);
+
+
+void print_ast(FILE* stream, struct ast* ast, int level);
+void free_ast(struct ast* ast);
+
 
 
 

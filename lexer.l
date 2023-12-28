@@ -1,6 +1,7 @@
 %option noyywrap nodefault yylineno caseless
 %{
 #include "ast.h"
+#include "parser.tab.h"
 
 /* handle locations */ 
 int yycolmn = 1;
@@ -58,7 +59,7 @@ false       { yylval.ival = 0; return BOOLVAL; }
 \"(\\.|[^"\n])*$                { yyerror("unterminated string %s", yytext); }
 
     /* operators */
-[(){}:,;]        { return yytext[0]; }
+[(){}:,;\.]        { return yytext[0]; }
 
 "&&"            { return AND; }
 "||"            { return OR; }
@@ -71,11 +72,11 @@ false       { yylval.ival = 0; return BOOLVAL; }
 ">="            { yylval.subtok = NT_GTE; return CMP; }
 
     /* names */
-[a-zA-Z_][a-zA-Z0-9_]*  { yylval.sval = strdup(yytext); return NAME; }
+[a-zA-Z_][a-zA-Z0-9_]*  { yylval.sval = strdup(yytext); return VARNAME; }
 `[^`/\\.\n]+`           { 
                             yylval.sval = strdup(yytext + 1);
                             yylval.sval[yyleng-2] = 0;
-                            return NAME; 
+                            return VARNAME; 
                         }
 `[^`\n]*$               { yyerror("unterminated quoted name %s", yytext); }
 
@@ -87,7 +88,7 @@ false       { yylval.ival = 0; return BOOLVAL; }
 
     /* whitespace */
 [ \t\r]+                { }
-\n                      { yycolmn = 1 }
+\n                      { yycolmn = 1; }
 
     /* everything else */
 .                       { yyerror("mystery character '%c'", *yytext); }

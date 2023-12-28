@@ -4,6 +4,9 @@
 %{
 #include "ast.h"
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+extern int yylex();
 %}
 
 %union {
@@ -14,97 +17,112 @@
     int subtok;
 }
     /* names and literal values */
-%token <sval> NAME STRINGVAL
+%token <sval> VARNAME STRINGVAL
 %token <ival> INTVAL FLOATVAL BOOLVAL
 
     /* operators and precedence levels */
 %left ','
 %left OR
 %left AND
-%left IN CMP
+%token <subtok> IN CMP
 
 
     /* keywords */
-%token FOR RETURN FILTER INSERT UPDATE REMOVE WITH INTO
+%token FOR RETURN FILTER INSERT UPDATE REMOVE WITH INTO CREATE DROP
+
+    /* types */
+%token INTEGER FLOAT BOOLEAN STRING
+
+    /* punctuation */
 
 
 %token EOL
 
-%type <ast> stmt_list stmt 
-%type <ast> remove_stmt return_stmt
-%type <ast> filter_stmt insert_stmt update_stmt for_stmt
-%type <ast> condition constant variable
-%type <ast> document pairs pair
+%type <ast> for_stmt non_terminal_list
+%type <ast> constant 
+%type <ast> filter_stmt conditions filter_expr filter_attr_name
+%type <ast> return_stmt attr_name return_document return_pairs return_pair
+%type <ast> terminal query non_terminal
+%type <ast> insert_stmt document pairs pair
+%type <ast> update_stmt
 %locations
 %start query
-%parse-param { struct ast *root; }
 %define parse.error verbose
 
 %%
-stmt_list: stmt ';'
-    |  EOL stmt_list stmt ';'    { $$ = $2; }
+terminal: return_stmt
+    | insert_stmt
+    | update_stmt
     ;
-
-stmt: filter_stmt
-    |  insert_stmt
-    |  update_stmt
-    |  remove_stmt
-    |  return_stmt
+non_terminal: filter_stmt
     |  for_stmt
     ;
 
-for_stmt: FOR NAME IN NAME stmt_list    {
-                                            $$ = newfor($2, $4, $5);
-                                            *root = $$;
-                                        }
+query: terminal                         { $$ = $1; print_ast(stdout, $$, 0); free_ast($$); }
+    | for_stmt                          { $$ = $1; print_ast(stdout, $$, 0); free_ast($$);}
+
+for_stmt: FOR VARNAME IN VARNAME terminal                   { $$ = newfor($2, $4, NULL, $5); }
+    | FOR VARNAME IN VARNAME non_terminal_list terminal     { $$ = newfor($2, $4, $5, $6); }
     ;
 
-filter_stmt: FILTER condition           { $$ = newfilter($2); }
+non_terminal_list: non_terminal                             { $$ = newlist($1, NULL);}  
+    | non_terminal_list non_terminal                        { $$ = newlist($2, $1);}
     ;
 
-condition: '(' condition ')'            { $$ = $2; }
-    | condition AND condition           { $$ = newand($1, $3); }
-    | condition OR condition            { $$ = newor($1, $3); }
-    | constant CMP constant             { $$ = newcmp($1, $2, $3); }
-    | constant IN constant              { $$ = newin($1, $3); }
+/*---------------filter-----------------*/
+filter_stmt: FILTER conditions              { $$ = newfilter($2); }
     ;
+conditions: filter_expr                     { $$ = newfilter_condition($1, NULL, -1);}
+    | filter_expr AND conditions            { $$ = newfilter_condition($1, $3, NT_AND);}
+    | filter_expr OR conditions             { $$ = newfilter_condition($1, $3, NT_OR);}
+    ;
+filter_expr: filter_attr_name CMP constant       { $$ = newfilter_expr($1, $3, $2);}
+    | filter_attr_name IN constant               { $$ = newfilter_expr($1, $3, $2);}
+    ;
+
+filter_attr_name: VARNAME '.' VARNAME         { $$ = newattr_name($1, $3);}
+
+/*---------------return-----------------*/
+return_stmt: RETURN attr_name             { $$ = newreturn($2); }
+    |    RETURN return_document             { $$ = newreturn($2); }
+    ;
+attr_name: VARNAME '.' VARNAME         { $$ = newattr_name($1, $3);}
+    | VARNAME                            { $$ = newattr_name($1, NULL);}
+    ;
+
+return_document: '{' return_pairs '}'                  { $$ = $2; }
+    ;
+return_pairs: return_pair
+    | return_pairs ',' return_pair                     { $$ = newlist($3, $1);}
+    ;
+return_pair: VARNAME ':' attr_name                  { $$ = newpair($1, $3); }
+
 
 constant: INTVAL                         { $$ = newint($1); }
         | FLOATVAL                       { $$ = newfloat($1); }
         | BOOLVAL                        { $$ = newbool($1); }
         | STRINGVAL                      { $$ = newstring($1); }
-        | variable                       { $$ = $1; }
         ;
 
-variable: NAME                          { $$ = newvar($1); }
-        | NAME '.' NAME                 { $$ = newvar($1); $$->right = newvar($3); }
-        ;
-
-remove_stmt: REMOVE NAME IN NAME        { $$ = newremove($2, $4); }
+/*---------------insert-----------------*/
+insert_stmt: INSERT document INTO VARNAME        { $$ = newinsert($4, $2); }
     ;
 
-insert_stmt: INSERT document INTO NAME  { $$ = newinsert($2, $4); }
+document : '{' pairs '}'                  { $$ = $2; }
     ;
-
-update_stmt: UPDATE document IN NAME
-        | UPDATE NAME WITH document IN NAME 
-        ;
-return_stmt: RETURN constant             { $$ = newreturn($2); }
-        |    RETURN document             { $$ = newreturn($2); }
-    ;
-
-document: '{' pairs '}'                  { $$ = $2; }
-        ;
 pairs: pair
-    | pairs ',' pair                     { $$ = $3;}
+    | pairs ',' pair                       { $$ = newlist($3, $1);}
     ;
+pair: VARNAME ':' constant                       { $$ = newpair($1, $3); }
 
-pair: NAME ':' constant                  { $$ = newpair($1, $3); }
+/*---------------update-----------------*/
+update_stmt: UPDATE attr_name WITH document IN VARNAME       { $$ = newupdate($6, $2, $4); }
+    ;
 
 %%
 
 void
-yyerror(char *s, ...)
+yyerror(const char *s, ...)
 {
     va_list ap;
     va_start(ap, s);

@@ -9,7 +9,7 @@ PROGRAM = lab2
 .PHONY: all clean debug
 default: all
 
-all: ${PROGRAM}
+all: clean ${PROGRAM}
 
 ${PROGRAM}: ast.h parser.tab.c lexer.c
 	${CC} -o ${PROGRAM} ast.c parser.tab.c lexer.c

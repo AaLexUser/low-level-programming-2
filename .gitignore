@@ -1,3 +1,6 @@
 parser.tab.c
 parser.tab.h
 lexer.c
+.vscode
+lab2.dSYM
+lab2
