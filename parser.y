@@ -65,11 +65,12 @@ terminal: return_stmt
     ;
 
 queries: YYEOF
+    | EOL queries
     | query YYEOF
     | query EOL queries
     ;
 
-query: terminal                          { $$ = $1; print_ast(stdout, *root, 0); if(*root) free_ast(*root); $$ = NULL;}
+query: terminal                               { $$ = $1; print_ast(stdout, *root, 0); if(*root) free_ast(*root); $$ = NULL;}
     | for_first_stmt                          { $$ = $1; print_ast(stdout, *root, 0); if(*root) free_ast(*root); $$ = NULL;}
     ;
 
@@ -174,8 +175,6 @@ yyerror(struct ast** ast, const char *s, ...)
         yylloc.first_line, yylloc.first_column, yylloc.last_line, yylloc.last_column);
     vfprintf(stderr, s, ap);
     fprintf(stderr, "\n");
-    if(ast && *ast)
-        free_ast(*ast);
 }
 
 struct ast * parse_ast(){
