@@ -39,18 +39,20 @@ extern int yylex();
 
 %token EOL YYEOF
 
-%type <ast> for_stmt non_terminal_list
+%type <ast> for_stmt for_first_stmt filter_list
 %type <ast> constant 
 %type <ast> filter_stmt conditions filter_expr filter_attr_name
 %type <ast> return_stmt attr_name return_document return_pairs return_pair merge
-%type <ast> terminal query non_terminal
+%type <ast> query terminal non_terminal_list 
 %type <ast> insert_stmt document pairs pair
 %type <ast> update_stmt remove_stmt drop_stmt
 %type <ast> create_stmt create_pairs create_pair
 
+%glr-parser
+
 %locations
 %parse-param { struct ast **root }
-%start query
+%start queries
 %define parse.error verbose
 
 %%
@@ -61,21 +63,31 @@ terminal: return_stmt
     | create_stmt
     | drop_stmt
     ;
-non_terminal: filter_stmt
-    |  for_stmt
+
+queries: YYEOF
+    | query YYEOF
+    | query EOL queries
     ;
 
-query: YYEOF                            { $$ = NULL; }
-    | terminal                          { $$ = $1; print_ast(stdout, *root, 0); free_ast($$); }
-    | for_stmt                          { $$ = $1; print_ast(stdout, *root, 0); free_ast($$);}
-
-for_stmt: FOR VARNAME IN VARNAME terminal YYEOF                     { $$ = newfor($2, $4, NULL, $5); *root= $$;}
-    | FOR VARNAME IN VARNAME non_terminal_list terminal YYEOF       { $$ = newfor($2, $4, $5, $6); *root= $$;}
-    | FOR VARNAME IN VARNAME non_terminal_list YYEOF                { $$ = newfor($2, $4, $5, NULL); *root= $$;}
+query: terminal                          { $$ = $1; print_ast(stdout, *root, 0); free_ast($$); $$ = NULL;}
+    | for_first_stmt                          { $$ = $1; print_ast(stdout, *root, 0); free_ast($$); $$ = NULL;}
     ;
 
-non_terminal_list: non_terminal                             { $$ = newlist($1, NULL); *root= $$;}  
-    | non_terminal_list non_terminal                        { $$ = newlist($2, $1); *root= $$;}
+for_first_stmt: FOR VARNAME IN VARNAME terminal             { $$ = newfor($2, $4, NULL, $5); *root= $$;}
+    | FOR VARNAME IN VARNAME non_terminal_list terminal     { $$ = newfor($2, $4, $5, $6); *root= $$;}
+    ;
+
+for_stmt: FOR VARNAME IN VARNAME                                { $$ = newfor($2, $4, NULL, NULL); *root= $$;}
+    | FOR VARNAME IN VARNAME non_terminal_list                  { $$ = newfor($2, $4, $5, NULL); *root= $$;}
+    ;
+
+non_terminal_list: for_stmt                                  { $$ = newlist($1, NULL); *root= $$;}
+    | filter_list                                            { $$ = $1; }
+    | filter_list for_stmt                                   { $$ = newlist($2, $1); *root= $$;}  
+    ;
+
+filter_list: filter_stmt                                     { $$ = newlist($1, NULL); *root= $$;}  
+    | filter_list filter_stmt                                { $$ = newlist($2, $1); *root= $$;}
     ;
 
 /*---------------filter-----------------*/
@@ -161,7 +173,6 @@ yyerror(struct ast** ast, const char *s, ...)
         yylloc.first_line, yylloc.first_column, yylloc.last_line, yylloc.last_column);
     vfprintf(stderr, s, ap);
     fprintf(stderr, "\n");
-    free_ast(*ast);
 }
 
 struct ast * parse_ast(){

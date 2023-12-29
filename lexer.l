@@ -89,6 +89,7 @@ false       { yylval.ival = 0; return BOOLVAL; }
 
     /* whitespace */
 [ \t\r]+                { }
+^\n                     { return EOL; }
 \n                      { yycolmn = 1; }
 
     /* everything else */
