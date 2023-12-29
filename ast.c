@@ -371,7 +371,9 @@ void print_ast(FILE* stream, struct ast* ast, int level)
             print_node(stream, level, "update: {\n");
             print_node(stream, level+1, "tabname: %s\n", updateast->tabname);
             print_ast(stream, updateast->attr, level+1);
+            print_node(stream, level+1, "data: [\n");
             print_ast(stream, updateast->list, level+1);
+            print_node(stream, level+1, "]\n");
             print_node(stream, level, "}\n");
             break;
         }

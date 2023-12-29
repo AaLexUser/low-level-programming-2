@@ -40,7 +40,7 @@ string      { yylval.subtok = NT_STRING; return TYPE; }
 bool        { yylval.subtok = NT_BOOLEAN; return TYPE; }
 
     /* numbers */
--[0-9]+      { yylval.ival = atoi(yytext); return INTVAL; }
+-?[0-9]+      { yylval.ival = atoi(yytext); return INTVAL; }
 
 -?[0-9]+"."[0-9]*               |
 -?"."[0-9]+                     |
@@ -64,6 +64,8 @@ false       { yylval.ival = 0; return BOOLVAL; }
 
 "&&"            { return AND; }
 "||"            { return OR; }
+"AND"           { return AND; }
+"OR"            { return OR; }
 
 "<"             { yylval.subtok = NT_LT; return CMP; }
 ">"             { yylval.subtok = NT_GT; return CMP; }

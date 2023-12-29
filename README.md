@@ -6,3 +6,10 @@
 данных.
 ## Вариант 
 AQL -  ArangoDb Query Language
+
+## Build & Run
+```
+make all
+./lab2
+
+```

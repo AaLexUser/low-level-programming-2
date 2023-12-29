@@ -69,8 +69,8 @@ queries: YYEOF
     | query EOL queries
     ;
 
-query: terminal                          { $$ = $1; print_ast(stdout, *root, 0); free_ast($$); $$ = NULL;}
-    | for_first_stmt                          { $$ = $1; print_ast(stdout, *root, 0); free_ast($$); $$ = NULL;}
+query: terminal                          { $$ = $1; print_ast(stdout, *root, 0); if(*root) free_ast(*root); $$ = NULL;}
+    | for_first_stmt                          { $$ = $1; print_ast(stdout, *root, 0); if(*root) free_ast(*root); $$ = NULL;}
     ;
 
 for_first_stmt: FOR VARNAME IN VARNAME terminal             { $$ = newfor($2, $4, NULL, $5); *root= $$;}
@@ -99,6 +99,7 @@ conditions: '(' filter_expr ')'             { $$ = newfilter_condition($2, NULL,
     | filter_expr OR conditions             { $$ = newfilter_condition($1, $3, NT_OR); *root= $$;}
     ;
 filter_expr: filter_attr_name CMP constant       { $$ = newfilter_expr($1, $3, $2); *root= $$;}
+    | filter_attr_name CMP filter_attr_name      { $$ = newfilter_expr($1, $3, $2); *root= $$;}
     | constant IN filter_attr_name              { $$ = newfilter_expr($3, $1, $2); *root= $$;}
     ;
 
@@ -173,6 +174,8 @@ yyerror(struct ast** ast, const char *s, ...)
         yylloc.first_line, yylloc.first_column, yylloc.last_line, yylloc.last_column);
     vfprintf(stderr, s, ap);
     fprintf(stderr, "\n");
+    if(ast && *ast)
+        free_ast(*ast);
 }
 
 struct ast * parse_ast(){
